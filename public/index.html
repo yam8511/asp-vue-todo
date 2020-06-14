@@ -1,0 +1,211 @@
+﻿<!doctype html>
+<html data-framework="vue">
+
+<head>
+    <meta charset="utf-8">
+    <title>Vue.js • TodoMVC</title>
+    <link rel="stylesheet" href="node_modules/todomvc-common/base.css">
+    <link rel="stylesheet" href="node_modules/todomvc-app-css/index.css">
+    <style>
+        [v-cloak] {
+            display: none;
+        }
+
+        * {
+            box-sizing: border-box
+        }
+
+        /* style the container */
+        .container {
+            position: relative;
+            border-radius: 5px;
+            background-color: #f2f2f2;
+            padding: 20px 0 30px 0;
+        }
+
+        /* style inputs and link buttons */
+        input,
+        .btn {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 4px;
+            margin: 5px 0;
+            opacity: 0.85;
+            display: inline-block;
+            font-size: 17px;
+            line-height: 20px;
+            text-decoration: none;
+            font-weight: bold;
+            /* remove underline from anchors */
+        }
+
+        input:hover,
+        .btn:hover {
+            opacity: 1;
+            cursor: pointer;
+        }
+
+        /* add appropriate colors to fb, twitter and google buttons */
+        .fb {
+            background-color: #3B5998;
+            color: white;
+        }
+
+        .twitter {
+            background-color: #55ACEE;
+            color: white;
+        }
+
+        .google {
+            background-color: #dd4b39;
+            color: white;
+        }
+
+        /* style the submit button */
+        input[type=submit] {
+            background-color: #4CAF50;
+            color: white;
+            cursor: pointer;
+        }
+
+        input[type=submit]:hover {
+            background-color: #45a049;
+        }
+
+        /* Two-column layout */
+        .col {
+            float: left;
+            width: 100%;
+            margin: auto;
+            padding: 0 50px;
+            margin-top: 6px;
+        }
+
+        /* Clear floats after the columns */
+        .row:after {
+            content: "";
+            display: table;
+            clear: both;
+        }
+
+        /* vertical line */
+        .vl {
+            position: absolute;
+            left: 50%;
+            transform: translate(-50%);
+            border: 2px solid #ddd;
+            height: 175px;
+        }
+
+        /* text inside the vertical line */
+        .inner {
+            position: absolute;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            background-color: #f1f1f1;
+            border: 1px solid #ccc;
+            border-radius: 50%;
+            padding: 8px 10px;
+        }
+
+        /* hide some text on medium and large screens */
+        .hide-md-lg {
+            display: none;
+        }
+
+        /* bottom container */
+        .bottom-container {
+            text-align: center;
+            background-color: #666;
+            border-radius: 0px 0px 4px 4px;
+        }
+
+        /* Responsive layout - when the screen is less than 650px wide, make the two columns stack on top of each other instead of next to each other */
+        @media screen and (max-width: 650px) {
+            .col {
+                width: 100%;
+                margin-top: 0;
+            }
+
+            /* hide the vertical line */
+            .vl {
+                display: none;
+            }
+
+            /* show the hidden text on small screens */
+            .hide-md-lg {
+                display: block;
+                text-align: center;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <section class="todoapp" v-cloak>
+        <header class="header">
+            <div v-if="user.username" class="container">
+                <h2 style="text-align: center;">
+                    {{ user.username }}, 今天有什麼待辦事項呢？
+                </h2>
+                <button class="btn twitter" @click="logout">登出</button>
+            </div>
+            <div v-else class="container">
+                <div class="row">
+                    <h2 style="text-align:center">目前尚未登入，純粹Demo。可登入增加個人的ToDo</h2>
+                    <div class="col">
+                        <input v-model="username" type="text" name="username" placeholder="帳號" required>
+                        <button class="btn fb" @click="login">登入</button>
+                        <button class="btn google" @click="signup">註冊</button>
+                    </div>
+                </div>
+            </div>
+
+            <h1>todos</h1>
+            <input class="new-todo" autofocus autocomplete="off" placeholder="What needs to be done?" v-model="newTodo"
+                @keyup.enter="addTodo">
+        </header>
+        <section class="main" v-show="todos.length">
+            <input id="toggle-all" class="toggle-all" type="checkbox" v-model="allDone">
+            <label for="toggle-all">Mark all as complete</label>
+            <ul class="todo-list">
+                <li class="todo" v-for="todo in filteredTodos" :key="todo.id"
+                    :class="{completed: todo.completed, editing: todo == editedTodo}">
+                    <div class="view">
+                        <input class="toggle" type="checkbox" @click="completeTodo(todo)" :checked="todo.completed">
+                        <label @dblclick="editTodo(todo)">{{todo.title}}</label>
+                        <button class="destroy" @click="removeTodo(todo)"></button>
+                    </div>
+                    <input class="edit" type="text" v-model="todo.title" v-todo-focus="todo == editedTodo"
+                        @blur="doneEdit(todo)" @keyup.enter="doneEdit(todo)" @keyup.esc="cancelEdit(todo)">
+                </li>
+            </ul>
+        </section>
+        <footer class="footer" v-show="todos.length">
+            <span class="todo-count">
+                <strong v-text="remaining"></strong> {{pluralize('item', remaining)}} left
+            </span>
+            <ul class="filters">
+                <li><a href="#/all" :class="{selected: visibility == 'all'}">All</a></li>
+                <li><a href="#/active" :class="{selected: visibility == 'active'}">Active</a></li>
+                <li><a href="#/completed" :class="{selected: visibility == 'completed'}">Completed</a></li>
+            </ul>
+            <button class="clear-completed" @click="removeCompleted" v-show="todos.length > remaining">
+                Clear completed
+            </button>
+        </footer>
+    </section>
+    <footer class="info">
+        <p>Double-click to edit a todo</p>
+        <p>Written by <a href="http://evanyou.me">Evan You</a></p>
+        <p>Part of <a href="http://todomvc.com">TodoMVC</a></p>
+    </footer>
+    <script src="node_modules/todomvc-common/base.js"></script>
+    <script src="node_modules/director/build/director.js"></script>
+    <script src="node_modules/vue/dist/vue.js"></script>
+    <script src="js/app.js"></script>
+    <script src="js/routes.js"></script>
+</body>
+
+</html>
